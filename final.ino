@@ -124,10 +124,10 @@ void setup() {
       Serial.println(" falhou!");
   }
 
-  // --- MODIFICAÇÃO: ROTINA DE AQUECIMENTO DO SENSOR DE GÁS ---
-  // Sensores de gás como o ENS160 precisam de um tempo para aquecer e estabilizar.
+  // --- MODIFICAÇÃO: ROTINA DE AQUECIMENTO DO SENSOR ---
+  // Sensores como o ENS160 precisam de um tempo para aquecer e estabilizar.
   if (ens160.available()) {
-    Serial.println("Iniciando aquecimento do sensor de gás por 3 minutos para estabilização...");
+    Serial.println("Iniciando aquecimento do sensor por 3 minutos para estabilização...");
     unsigned long warmupStartTime = millis();
     while (millis() - warmupStartTime < 180000UL) { // 3 minutos = 180000 ms
         // Forçar leituras durante o aquecimento ajuda o sensor a se estabilizar mais rápido.
@@ -195,7 +195,7 @@ void lerSensores() {
   // Se o sensor ENS160 estiver disponível, faz a leitura.
   if (ens160.available()) {
     // ESSENCIAL: Fornece os dados de temperatura e umidade para o sensor ENS160
-    // realizar a compensação e garantir leituras precisas de gás.
+    // realizar a compensação e garantir leituras precisas.
     ens160.set_envdata(tempC, humidity);
     ens160.measure(true);
     tvoc = ens160.getTVOC();

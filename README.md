@@ -19,7 +19,7 @@ Este projeto, parte da discplina Projeto em Engenharia da Computação 2025/1 da
 
 ## 🚀 Como Executar
 
-Acesse o projeto através do link [] ou siga os passos abaixo para colocar o projeto em funcionamento na sua máquina local:
+Acesse o projeto através do link [https://esp32projeto.streamlit.app] ou siga os passos abaixo para colocar o projeto em funcionamento na sua máquina local:
 
 ### Pré-requisitos
 
@@ -30,8 +30,8 @@ Certifique-se de ter o **Python 3.9** ou superior instalado. Você pode baixá-l
 Primeiro, clone este repositório para o seu ambiente local:
 
 ```bash
-git clone https://github.com/gbeloso/esp32-environment.git
-cd esp32-environment
+git clone https://github.com/Marcos-Aquin0/esp32_projeto_final
+cd esp32_projeto_final
 ```
 
 ### 2. Configurar Variáveis de Ambiente
@@ -61,7 +61,7 @@ streamlit run app.py
 
 ## 📜 Descrição Geral
 
-O firmware é projetado para ser robusto e flexível. Ele se conecta a uma rede Wi-Fi, inicializa múltiplos sensores, realiza leituras periódicas e as publica em um canal ThingSpeak. O sistema inclui uma rotina de aquecimento para os sensores de gás, garantindo maior precisão nos dados, e permite configuração dinâmica da rede Wi-Fi através do Monitor Serial.
+O firmware é projetado para ser robusto e flexível. Ele se conecta a uma rede Wi-Fi, inicializa múltiplos sensores, realiza leituras periódicas e as publica em um canal ThingSpeak. O sistema inclui uma rotina de aquecimento para os sensores, garantindo maior precisão nos dados, e permite configuração dinâmica da rede Wi-Fi através do Monitor Serial.
 
 ## ✨ Funcionalidades
 

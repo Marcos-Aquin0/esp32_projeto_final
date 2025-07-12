@@ -296,7 +296,7 @@ elif(add_radio == "🔔 Alertas"):
 elif(add_radio == "🛠 Suporte"):
     st.subheader("Suporte")
     st.write("Em caso de dúvidas ou dificuldades, consulte nossa documentação no repositório: ")
-    st.markdown("[https://github.com/gbeloso/esp32-environment]")
+    st.markdown("[https://github.com/Marcos-Aquin0/esp32_projeto_final]")
 
     st.write("Ou entre em contato com nosso suporte:")
     st.write("Contato: ✉ example@email.com")

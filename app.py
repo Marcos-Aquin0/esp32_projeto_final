@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 import pandas as pd
 import re
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from streamlit_autorefresh import st_autorefresh
 from dotenv import load_dotenv
 import os
@@ -85,6 +85,9 @@ fields = reg_filter(channel, r".*(field).*")
 st.title("🏡 Monitoramento da Qualidade do Ar Interno - ESP32")
 
 feeds['created_at'] = feeds.apply(convert_datetime, axis=1)
+feeds['created_at'] = feeds['created_at'].dt.tz_localize('UTC')
+utc3_fixed_offset = timezone(timedelta(hours=-3))
+feeds['created_at'] = feeds['created_at'].dt.tz_convert(utc3_fixed_offset)
 
 if(add_radio == "🌡️ Leitura dos Sensores"):
 
@@ -112,7 +115,10 @@ if(add_radio == "🌡️ Leitura dos Sensores"):
                                         "Qualidade do ar ruim.")
 
         timestamp = datetime.fromisoformat(last_data["created_at"])
-        st.caption(f"Última leitura: {timestamp.strftime('%d/%m/%Y %H:%M:%S')}")
+        utc3_fixed_offset = timezone(timedelta(hours=-3))
+        local_timestamp = timestamp.astimezone(utc3_fixed_offset)
+        formatted_timestamp = local_timestamp.strftime('%d/%m/%Y %H:%M:%S')
+        st.caption(f"Última leitura: {formatted_timestamp}")
     else:
         st.warning("Nenhum dado recebido da API.")
 
@@ -162,12 +168,16 @@ if(add_radio == "🌡️ Leitura dos Sensores"):
                 alerta_visual("Alerta AQI", "Recomendação para AQI fora do ideal na ultima hora", "#dc3545")
 
         timestamp = datetime.fromisoformat(last_data["created_at"])
-        st.caption(f"Última leitura: {timestamp.strftime('%d/%m/%Y %H:%M:%S')}")
+        utc3_fixed_offset = timezone(timedelta(hours=-3))
+        local_timestamp = timestamp.astimezone(utc3_fixed_offset)
+        formatted_timestamp = local_timestamp.strftime('%d/%m/%Y %H:%M:%S')
+        st.caption(f"Última leitura: {formatted_timestamp}")
     else:
         st.warning("Nenhum dado recebido da API.")
 
     st.header("Série histórica")
-
+    utc3_fixed_offset = timezone(timedelta(hours=-3))
+    feeds['created_at_utc3'] = feeds['created_at'].dt.tz_convert(utc3_fixed_offset)
     fields_l = list(fields.items())
 
     for i in range(0, len(fields), 2):

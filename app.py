@@ -24,7 +24,7 @@ with st.sidebar:
 def reg_filter (json_data, regex_pattern):
     filtered_data = {}
     for key, value in json_data.items():
-        if re.fullmatch(regex_pattern, key): # Use re.fullmatch for exact match of the entire key
+        if re.fullmatch(regex_pattern, key):
             filtered_data[key] = value
     return filtered_data
 
@@ -179,6 +179,9 @@ if(add_radio == "🌡️ Leitura dos Sensores"):
     utc3_fixed_offset = timezone(timedelta(hours=-3))
     feeds['created_at_utc3'] = feeds['created_at'].dt.tz_convert(utc3_fixed_offset)
     fields_l = list(fields.items())
+
+    for field in fields.keys():
+        feeds[field] = pd.to_numeric(feeds[field], errors='coerce')
 
     for i in range(0, len(fields), 2):
         cols = st.columns(2)

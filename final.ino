@@ -1,40 +1,32 @@
 // =================================================================
 //                    BIBLIOTECAS E DEPENDÊNCIAS
 // =================================================================
-// Inclusão das bibliotecas necessárias para o funcionamento do projeto.
-#include <math.h>             // Para funções matemáticas como pow() no cálculo do PM2.5.
-#include <WiFi.h>             // Para gerenciar a conexão Wi-Fi do ESP32.
-#include <Wire.h>             // Para comunicação no barramento I2C, usado pelos sensores.
-#include <PubSubClient.h>     // Cliente MQTT para enviar dados para plataformas de IoT.
-#include <Adafruit_AHTX0.h>     // Biblioteca para o sensor de temperatura e umidade AHT.
-#include <ScioSense_ENS160.h> // Biblioteca para o sensor de qualidade do ar (CO2, TVOC) ENS160.
+#include <math.h>             
+#include <WiFi.h>             
+#include <Wire.h>             
+#include <PubSubClient.h>     
+#include <Adafruit_AHTX0.h>     
+#include <ScioSense_ENS160.h> 
 
 // =================================================================
 //                  CONFIGURAÇÕES E VARIÁVEIS GLOBAIS
 // =================================================================
 
-// --- WiFi & MQTT ---
-String ssid;                  // Variável para armazenar o nome da rede Wi-Fi (SSID).
-String password;              // Variável para armazenar a senha da rede Wi-Fi.
-
-// Credenciais padrão, caso nenhuma seja fornecida via Serial.
+//** SwRS-4 **// Default credentials if none received via Serial
 const char* default_ssid = "Pereira";
 const char* default_password = "toktoklia";
 
-// Configurações do Broker MQTT (ThingSpeak).
+//** SwRS-8 **// MQTT broker configuration
 const char *mqtt_broker = "mqtt3.thingspeak.com";
 const int mqtt_port = 1883;
-const char *client_id = "Hw4bCzIwNRAvEywjKAonCSk";       // ID único do cliente para o broker.
-const char *mqtt_username = "Hw4bCzIwNRAvEywjKAonCSk"; // Usuário para autenticação no broker.
-const char *mqtt_password = "muNwStQai/qJtGWkSppvXlAa";   // Senha para autenticação no broker.
-const char *topic = "channels/2988273/publish";       // Tópico onde os dados serão publicados.
+const char *client_id = "Hw4bCzIwNRAvEywjKAonCSk";       
+const char *mqtt_username = "Hw4bCzIwNRAvEywjKAonCSk"; 
+const char *mqtt_password = "muNwStQai/qJtGWkSppvXlAa";   
+const char *topic = "channels/2988273/publish";       
 
-// --- Sensores ---
-// Cria os objetos que representarão os sensores físicos.
-ScioSense_ENS160 ens160(ENS160_I2CADDR_1); // Objeto para o sensor ENS160.
-Adafruit_AHTX0 aht;                      // Objeto para o sensor AHT.
-
-// Variáveis para armazenar os dados lidos dos sensores.
+//** SwRS-5,6,7 **// Sensor objects and variables
+ScioSense_ENS160 ens160(ENS160_I2CADDR_1); 
+Adafruit_AHTX0 aht;                      
 float tempC = 0;
 float humidity = 0;
 float pm25 = 0;
@@ -42,32 +34,34 @@ int tvoc = 0;
 int co = 0;
 int aqi = 0;
 
-// --- PM2.5 ---
-const int pin = 12;                      // Pino digital onde o sensor de PM2.5 está conectado.
-unsigned long duration = 0;              // Armazena a duração de um pulso do sensor.
-unsigned long lowpulseoccupancy = 0;     // Acumula o tempo total que o pino ficou em nível baixo.
-float ratio = 0;                         // Proporção do tempo em nível baixo, usada no cálculo.
+//** SwRS-7,19,21 **// PM2.5 sensor configuration
+const int pin = 12;                      
+unsigned long duration = 0;              
+unsigned long lowpulseoccupancy = 0;     
+float ratio = 0;                         
 
-// --- Controle de Envio ---
-unsigned long lastSend = 0;              // Armazena o tempo (em ms) do último envio de dados.
-const unsigned long sendInterval = 6 * 60 * 1000UL; // MODIFICADO: Intervalo de envio de 6 minutos.
-bool enviar = true;                      // Flag para habilitar/desabilitar o envio automático.
-bool envioForcado = true;                // Flag para forçar o envio na primeira execução do loop.
+//** SwRS-1,2 **// Send interval control
+unsigned long lastSend = 0;              
+const unsigned long sendInterval = 6 * 60 * 1000UL; 
+bool enviar = true;                      
+bool envioForcado = true;                
 
-// --- Clientes de Rede ---
-WiFiClient espClient;                    // Cliente Wi-Fi.
-PubSubClient client(espClient);          // Cliente MQTT, que utiliza a conexão Wi-Fi.
+//** SwRS-8,9 **// Network clients
+WiFiClient espClient;                    
+PubSubClient client(espClient);          
 
 // =================================================================
 //                          FUNÇÃO SETUP
 // =================================================================
-// Esta função é executada uma única vez, quando o dispositivo liga.
 void setup() {
-  pinMode(pin, INPUT);         // Configura o pino do sensor de poeira como entrada.
-  Serial.begin(115200);        // Inicia a comunicação serial para depuração.
-  delay(1000);                 // Pequena pausa para estabilização.
+  //** SwRS-7 **// Initialize PM2.5 sensor pin
+  pinMode(pin, INPUT);         
+  Serial.begin(115200);        
+  
+  //** SwRS-29 **// Initial delay
+  delay(1000);                 
 
-  // Permite que o usuário insira credenciais de Wi-Fi pela Serial por 10 segundos.
+  //** SwRS-10 **// Wait for WiFi credentials via Serial
   Serial.println("Aguardando entrada de SSID e senha por 10 segundos...");
   unsigned long startTime = millis();
 
@@ -84,14 +78,14 @@ void setup() {
     delay(100);
   }
 
-  // Se nenhuma credencial foi inserida, usa os valores padrão.
+  //** SwRS-4 **// Use default credentials if none received
   if (ssid.length() == 0 || password.length() == 0) {
     Serial.println("Tempo esgotado ou dados incompletos. Usando rede WiFi padrão.");
     ssid = default_ssid;
     password = default_password;
   }
 
-  // Inicia a conexão com a rede Wi-Fi.
+  //** SwRS-25,26 **// WiFi connection with status feedback
   Serial.printf("Conectando à rede: %s\n", ssid.c_str());
   WiFi.begin(ssid.c_str(), password.c_str());
 
@@ -102,42 +96,40 @@ void setup() {
   Serial.println("\nConectado!");
   Serial.printf("IP: %s\n", WiFi.localIP().toString().c_str());
 
-  // Configura o servidor MQTT.
+  //** SwRS-8 **// MQTT setup
   client.setServer(mqtt_broker, mqtt_port);
   
-  // Inicia o barramento I2C nos pinos 16 (SDA) e 17 (SCL).
+  //** SwRS-28 **// Initialize I2C bus
   Wire.begin(16, 17);
 
-  // Inicializa o sensor de temperatura e umidade.
+  //** SwRS-5,16,30 **// Initialize AHT sensor
   if (!aht.begin()) {
     Serial.println("Sensor AHT não encontrado. Verifique a fiação.");
-    while (1) delay(10); // Trava a execução se o sensor não for encontrado.
+    while (1) delay(10); 
   }
   Serial.println("Sensor AHT inicializado.");
 
-  // Inicializa o sensor de qualidade do ar.
+  //** SwRS-6,17,25 **// Initialize ENS160 sensor
   Serial.print("Inicializando sensor ENS160...");
   if (ens160.begin()) {
       Serial.println(" sucesso!");
-      ens160.setMode(ENS160_OPMODE_STD); // Define o modo de operação padrão.
+      ens160.setMode(ENS160_OPMODE_STD); 
   } else {
       Serial.println(" falhou!");
   }
 
-  // --- MODIFICAÇÃO: ROTINA DE AQUECIMENTO DO SENSOR ---
-  // Sensores como o ENS160 precisam de um tempo para aquecer e estabilizar.
+  //** SwRS-12,13,26 **// ENS160 warmup routine
   if (ens160.available()) {
     Serial.println("Iniciando aquecimento do sensor por 3 minutos para estabilização...");
     unsigned long warmupStartTime = millis();
-    while (millis() - warmupStartTime < 180000UL) { // 3 minutos = 180000 ms
-        // Forçar leituras durante o aquecimento ajuda o sensor a se estabilizar mais rápido.
+    while (millis() - warmupStartTime < 180000UL) { 
+        //** SwRS-22,23 **// Provide environmental data during warmup
         sensors_event_t humidityEvent, tempEvent;
         aht.getEvent(&humidityEvent, &tempEvent);
-        // Fornece dados de ambiente para compensação interna do sensor.
         ens160.set_envdata(tempEvent.temperature, humidityEvent.relative_humidity);
         ens160.measure(true);
-        delay(5000); // Faz uma leitura a cada 5 segundos.
-        Serial.print("."); // Feedback visual para o usuário.
+        delay(5000); 
+        Serial.print("."); 
     }
     Serial.println("\nAquecimento concluído. Iniciando medições normais.");
   }
@@ -146,7 +138,7 @@ void setup() {
 // =================================================================
 //                        FUNÇÃO DE CONEXÃO MQTT
 // =================================================================
-// Responsável por conectar e reconectar ao broker MQTT.
+//** SwRS-8,9,25 **// MQTT connection and reconnection
 void connect_MQTT() {
   while (!client.connected()) {
     Serial.print("Conectando ao broker MQTT: ");
@@ -155,7 +147,6 @@ void connect_MQTT() {
     if (client.connect(client_id, mqtt_username, mqtt_password)) {
       Serial.println("Conectado ao MQTT!\n");
     } else {
-      // Se a conexão falhar, imprime o código de erro para diagnóstico.
       int state = client.state();
       Serial.printf("Falha na conexão MQTT, estado: %d -> ", state);
       switch (state) {
@@ -180,46 +171,42 @@ void connect_MQTT() {
 // =================================================================
 //                       FUNÇÃO DE LEITURA DOS SENSORES
 // =================================================================
-// Centraliza a coleta de dados de todos os sensores.
+//** SwRS-5,6,7,19,20,22,23,24,27 **// Read all sensors
 void lerSensores() {
-  // Lê temperatura e umidade do sensor AHT.
+  // Read AHT sensor
   sensors_event_t humidityEvent, tempEvent;
   aht.getEvent(&humidityEvent, &tempEvent);
   tempC = tempEvent.temperature;
   humidity = humidityEvent.relative_humidity;
 
-  // Calcula a concentração de PM2.5 com base no tempo acumulado de pulso baixo.
+  // Calculate PM2.5
   ratio = lowpulseoccupancy / (sendInterval * 10.0);
   pm25 = 1.1 * pow(ratio, 3) - 3.8 * pow(ratio, 2) + 520 * ratio + 0.62;
   
-  // Se o sensor ENS160 estiver disponível, faz a leitura.
+  // Read ENS160 if available
   if (ens160.available()) {
-    // ESSENCIAL: Fornece os dados de temperatura e umidade para o sensor ENS160
-    // realizar a compensação e garantir leituras precisas.
     ens160.set_envdata(tempC, humidity);
     ens160.measure(true);
     tvoc = ens160.getTVOC();
     co = ens160.geteCO2();
     aqi = ens160.getAQI();
   } else {
-    // Se o sensor falhar, atribui valores de erro.
     tvoc = -1;
     co = -1;
     aqi = -1;
   }
 
-  // Zera o acumulador de pulso do PM2.5 para iniciar uma nova medição no próximo ciclo.
   lowpulseoccupancy = 0;
 }
 
 // =================================================================
 //                      FUNÇÃO DE PUBLICAÇÃO DE DADOS
 // =================================================================
-// Formata e envia os dados para o ThingSpeak via MQTT.
+//** SwRS-1,3,14,15 **// Publish all data
 void publicarTudo() {
-  lerSensores(); // Primeiro, obtém as leituras mais recentes.
+  lerSensores(); 
 
-  // Imprime os valores no monitor serial para depuração local.
+  //** SwRS-15 **// Print values to Serial
   Serial.println("--- Nova Leitura ---");
   Serial.printf("Temperatura: %.2f °C\n", tempC);
   Serial.printf("Umidade: %.2f %%\n", humidity);
@@ -228,16 +215,15 @@ void publicarTudo() {
   Serial.printf("PM2.5: %.2f pcs/0.01cf\n", pm25);
   Serial.printf("AQI: %d\n", aqi);
 
-  // Monta a string de 'payload' no formato exigido pelo ThingSpeak:
-  // "field1=VALOR1&field2=VALOR2&..."
+  //** SwRS-14 **// Format payload string
   String payload = "field1=" + String(tempC, 2) +
                    "&field2=" + String(humidity, 2) +
                    "&field3=" + String(tvoc) +
                    "&field4=" + String(co) +
-                   "&field5=" + String(pm25, 2) + // Arredonda o valor do PM2.5 para 2 casas decimais.
+                   "&field5=" + String(pm25, 2) +
                    "&field6=" + String(aqi);
 
-  // Se o cliente MQTT estiver conectado, publica a mensagem.
+  // Publish to MQTT
   if (client.connected()) {
     if (client.publish(topic, payload.c_str())) {
       Serial.println("Dados enviados com sucesso para o ThingSpeak!\n");
@@ -250,38 +236,36 @@ void publicarTudo() {
 // =================================================================
 //                           FUNÇÃO LOOP
 // =================================================================
-// Este é o ciclo principal que se repete indefinidamente.
+//** Main loop implementing multiple requirements **//
 void loop() {
-  // Garante que o cliente MQTT esteja sempre conectado.
+  //** SwRS-9,18 **// Maintain MQTT connection
   if (!client.connected()) {
     connect_MQTT();
   }
-  client.loop(); // Essencial para manter a conexão MQTT e processar mensagens.
+  client.loop(); 
 
-  // Acumula continuamente a duração dos pulsos baixos do sensor de poeira.
+  //** SwRS-7,21 **// Read PM2.5 sensor pulses
   duration = pulseIn(pin, LOW);
   lowpulseoccupancy += duration;
 
-  // Verifica se há um comando vindo da porta Serial.
+  //** SwRS-3,11 **// Handle Serial commands
   if (Serial.available()) {
     char c = Serial.read();
     if (c == '1') {
-      // Se o caractere '1' for recebido, força um envio imediato.
       Serial.println("Envio manual solicitado via Serial.\n");
       publicarTudo();
-      while(Serial.available()) Serial.read(); // Limpa o buffer serial.
+      while(Serial.available()) Serial.read(); 
     } else {
-      // Qualquer outro caractere alterna o envio automático.
       enviar = !enviar;
       Serial.println(enviar ? "Envio AUTOMÁTICO ATIVADO\n" : "Envio AUTOMÁTICO DESATIVADO\n");
     }
   }
 
-  // Lógica de tempo para o envio automático.
+  //** SwRS-1,2 **// Automatic send logic
   unsigned long now = millis();
   if ((now - lastSend >= sendInterval || envioForcado) && enviar) {
-    lastSend = now;          // Atualiza o tempo do último envio.
-    envioForcado = false;    // Desativa o envio forçado após a primeira vez.
-    publicarTudo();          // Chama a função para ler e publicar os dados.
-  }
+    lastSend = now;          
+    envioForcado = false;    
+    publicarTudo();          
+  }
 }
